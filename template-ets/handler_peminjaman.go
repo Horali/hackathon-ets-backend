@@ -50,6 +50,11 @@ func (s *Store) buatPeminjaman(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 400, "jumlah melebihi stok sumber daya")
 		return
 	}
+	// B5: cek bentrok dan simpan ada di dalam lock yang sama
+	if s.adaBentrok(in, sd.Stok, 0) {
+		writeError(w, 409, "slot sudah penuh, kapasitas terlampaui")
+		return
+	}
 
 	p := Peminjaman{
 		ID:           s.nextPJID,
