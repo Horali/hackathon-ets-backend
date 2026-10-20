@@ -5,23 +5,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
 	"unicode/utf8"
 )
-
-type SumberDaya struct {
-	ID    int    `json:"id"`
-	Nama  string `json:"nama"`
-	Jenis string `json:"jenis"`
-	Stok  int    `json:"stok"`
-}
-
-// Store: semua data di memori, dijaga satu mutex
-type Store struct {
-	mu         sync.Mutex
-	sumberDaya []SumberDaya
-	nextSDID   int
-}
 
 func writeJSON(w http.ResponseWriter, code int, data any) {
 	w.Header().Set("Content-Type", "application/json")
@@ -86,11 +71,14 @@ func (s *Store) detailSumberDaya(w http.ResponseWriter, r *http.Request) {
 }
 
 func NewHandler() http.Handler {
-	s := &Store{nextSDID: 1}
+	s := &Store{nextSDID: 1, nextPJID: 1}
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /sumber-daya", s.buatSumberDaya)
 	mux.HandleFunc("GET /sumber-daya", s.daftarSumberDaya)
 	mux.HandleFunc("GET /sumber-daya/{id}", s.detailSumberDaya)
+	mux.HandleFunc("POST /peminjaman", s.buatPeminjaman)
+	mux.HandleFunc("GET /peminjaman", s.daftarPeminjaman)
+	mux.HandleFunc("GET /peminjaman/{id}", s.detailPeminjaman)
 	return mux
 }
 
