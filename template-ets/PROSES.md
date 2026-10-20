@@ -30,5 +30,14 @@ Pilihan lain yang sempat saya pikirkan adalah mengunci hanya di bagian append sa
 - Cara menemukan: saya cek isi pesan error-nya, bukan hanya kode statusnya. Ternyata semua request POST dari PowerShell dapat pesan yang sama, jadi masalahnya bukan di kode validasi.
 - Penyebab dan solusi: PowerShell 5.1 membuang tanda kutip `\"` di dalam argumen `-d`, sehingga yang sampai ke server adalah JSON yang rusak. Solusinya menambahkan `--%` setelah `curl.exe` supaya PowerShell tidak mengubah argumennya. Dari sini saya jadi selalu cek pesan error-nya juga, karena kode status yang benar belum tentu muncul karena alasan yang benar.
 
+### Bug 3
+- Gejala: PUT yang hanya mengganti nama peminjam ditolak dengan 409, padahal slotnya tidak berubah.
+- Cara menemukan: saya menguji PUT pada ruang dengan stok 1 tanpa mengubah slot, dan ternyata peminjaman tersebut bentrok dengan dirinya sendiri.
+- Penyebab dan solusi: di `ubahPeminjaman`, `adaBentrok` dipanggil dengan `kecualiID` bernilai 0 seperti di POST, sehingga peminjaman itu ikut terhitung. Solusinya `kecualiID` diisi dengan `id` peminjaman yang sedang diubah.
+
 ## 5. Change request
-(Apa yang diminta, bagian kode mana yang kamu ubah, dan satu keputusan desain yang kamu ambil.)
+Change request yang saya dapat adalah CR C: data peminjaman tidak boleh hilang. `DELETE /peminjaman/{id}` tidak lagi menghapus data, tetapi mengubah status menjadi "dibatalkan".
+
+Bagian yang diubah hanya handler DELETE di `handler_peminjaman.go`, yang saya ganti nama dari `hapusPeminjaman` menjadi `batalkanPeminjaman` supaya sesuai dengan fungsinya. Endpoint lain tidak perlu diubah, karena `menahanSlot` sudah hanya menghitung status diajukan dan disetujui, sehingga peminjaman yang dibatalkan otomatis melepas slot. Endpoint setujui, tolak, dan selesaikan juga sudah mengecek status saat ini, jadi peminjaman yang dibatalkan otomatis ditolak dengan 409.
+
+Keputusan desain: untuk mengecek apakah peminjaman boleh dibatalkan, saya memakai ulang fungsi `menahanSlot`, bukan membuat daftar status baru. Aturan "yang bisa dibatalkan hanya diajukan dan disetujui" sama persis dengan status yang menahan slot, jadi cukup satu fungsi dan kalau aturannya berubah cukup diubah di satu tempat.

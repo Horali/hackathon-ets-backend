@@ -185,8 +185,10 @@ func (s *Store) ubahPeminjaman(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, *p)
 }
 
-// B6: DELETE /peminjaman/{id} menghapus data, 204 tanpa body.
-func (s *Store) hapusPeminjaman(w http.ResponseWriter, r *http.Request) {
+// B6 + CR C: DELETE /peminjaman/{id} sekarang berarti pembatalan, data tidak dihapus.
+// Status menjadi "dibatalkan" (tidak menahan slot), 204 tanpa body.
+// Persona C: hanya diajukan atau disetujui yang bisa dibatalkan, selain itu 409.
+func (s *Store) batalkanPeminjaman(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		writeError(w, 400, "id harus angka")
@@ -200,6 +202,10 @@ func (s *Store) hapusPeminjaman(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 404, "peminjaman tidak ditemukan")
 		return
 	}
-	s.peminjaman = append(s.peminjaman[:i], s.peminjaman[i+1:]...)
+	if !menahanSlot(s.peminjaman[i].Status) {
+		writeError(w, 409, "hanya peminjaman diajukan atau disetujui yang bisa dibatalkan")
+		return
+	}
+	s.peminjaman[i].Status = "dibatalkan"
 	w.WriteHeader(204)
 }
